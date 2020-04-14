@@ -2,18 +2,6 @@ import requests
 from bs4 import BeautifulSoup
 import discord
 
-def retrieve_info(url):
-    nb_days = nb_books = None
-    r = requests.get(url)
-    if r.status_code != 200 :
-        print('An error occured, please try again!')
-        print("URL:", url)
-        print('Request status code :', r.status_code)
-    else :
-        soup = BeautifulSoup(r.text, 'html.parser')
-        nb_days = soup.find(id = 'time-days').get_text()[:-4]
-        nb_books = soup.find(id = 'fact-books').get_text()[0:-10]
-    return (nb_days, nb_books)
 
 with open('token', 'r') as file:
     token = file.read()
@@ -36,10 +24,18 @@ async def on_message(message):
         username = ' '.join(arg)
         username_prcs = ''.join(arg).lower()
         url = "https://wol.gg/stats/euw/" + username_prcs + '/'
-        nb_days, nb_books = retrieve_info(url)
-        msg = 'An error occured, sorry T-T'
-        if nb_days is not None:
-            msg = ' '.join(['Wow', username + '!', 'You already wasted**', nb_days, '**days playing League! Instead, you could have read**', nb_books, '**books!'])
+        nb_days = nb_books = None
+        r = requests.get(url)
+        if r.status_code != 200:
+            msg = ' '.join(['An error occured, please try again!\nURL:', url, '\nRequest status code :', str(r.status_code)])
+        else :
+            soup = BeautifulSoup(r.text, 'html.parser')
+            if "An error has occured." in soup.h1:
+                msg = 'An error occured, please try again!\nSummoner might not exist...'
+            else:
+                nb_days = soup.find(id = 'time-days').get_text()[:-4]
+                nb_books = soup.find(id = 'fact-books').get_text()[0:-10]
+                msg = ' '.join(['Wow', username + '!', 'You already wasted**', nb_days, '**days playing League of Legends! Instead, you could have read**', nb_books, '**books!'])
         await message.channel.send(msg)
 
 client.run(token)
